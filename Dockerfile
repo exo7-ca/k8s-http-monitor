@@ -1,5 +1,3 @@
-# Multi-stage build for k8s-endpoint-monitor
-
 # Build stage
 FROM golang:1.24-alpine AS builder
 
@@ -16,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o k8s-endpoint-monitor .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o k8s-http-monitor .
 
 # Runtime stage
 FROM alpine:latest
@@ -28,7 +26,7 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /app
 
 # Copy the binary from the builder stage
-COPY --from=builder /app/k8s-endpoint-monitor .
+COPY --from=builder /app/k8s-http-monitor .
 
 # Copy the config file
 COPY config.yaml .
@@ -47,10 +45,9 @@ USER appuser
 # Environment variables (can be overridden at runtime)
 ENV MONITOR_INTERVAL_SECONDS=30
 ENV METRICS_INTERVAL_SECONDS=10
-ENV OTEL_COLLECTOR_URL="signoz-otel-collector:4317"
 
 # Run the application
-ENTRYPOINT ["./k8s-endpoint-monitor"]
+ENTRYPOINT ["./k8s-http-monitor"]
 
 # Usage:
 # Build: docker build -t k8s-endpoint-monitor .

@@ -64,20 +64,20 @@ spec:
               memory: 128Mi
           env:
             - name: OTEL_COLLECTOR_URL
-              value: "http://otel-collector.monitoring.svc.cluster.local:4317"
+              value: "otel-collector.monitoring.svc.cluster.local:4317"
             - name: SUCCESS_STATUS_CODES
               value: "401,403"
           livenessProbe:
             httpGet:
               path: /health/live
               port: 8080
-            initialDelaySeconds: 10
+            initialDelaySeconds: 5
             periodSeconds: 30
           readinessProbe:
             httpGet:
               path: /health/ready
               port: 8080
-            initialDelaySeconds: 5
+            initialDelaySeconds: 3
             periodSeconds: 10
 ---
 # k8s/service.yaml
