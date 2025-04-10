@@ -1,0 +1,97 @@
+# k8s/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: k8s-http-monitor
+  namespace: monitoring
+---
+# k8s/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k8s-http-monitor
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+---
+# k8s/rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: k8s-http-monitor
+subjects:
+  - kind: ServiceAccount
+    name: k8s-http-monitor
+    namespace: monitoring
+roleRef:
+  kind: ClusterRole
+  name: k8s-http-monitor
+  apiGroup: rbac.authorization.k8s.io
+---
+# k8s/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-http-monitor
+  namespace: monitoring
+  labels:
+    app: k8s-http-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-http-monitor
+  template:
+    metadata:
+      labels:
+        app: k8s-http-monitor
+    spec:
+      serviceAccountName: k8s-http-monitor
+      containers:
+        - name: k8s-http-monitor
+          image: jfboily/k8s-http-monitor:latest
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          env:
+            - name: OTEL_COLLECTOR_URL
+              value: "http://otel-collector.monitoring.svc.cluster.local:4317"
+            - name: SUCCESS_STATUS_CODES
+              value: "401,403"
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+# k8s/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-http-monitor
+  namespace: monitoring
+  labels:
+    app: k8s-http-monitor
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+  selector:
+    app: k8s-http-monitor
