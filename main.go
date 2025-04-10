@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -13,10 +15,48 @@ import (
 	"github.com/exo7-ca/k8s-http-monitor/pkg/monitoring"
 )
 
+func startHealthServer(ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	// Create a simple health check handler
+	http.HandleFunc("/health/live", func(w http.ResponseWriter, r *http.Request) {
+		// For liveness, just return 200 if the server is running
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+
+	http.HandleFunc("/health/ready", func(w http.ResponseWriter, r *http.Request) {
+		// For readiness, check if all components are initialized
+		// You might want to check if the Kubernetes client and metrics are working
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Ready"))
+	})
+
+	server := &http.Server{
+		Addr: ":8080",
+	}
+
+	// Start the server in a goroutine
+	go func() {
+		log.Println("Starting health check server on :8080")
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalf("Health check server failed: %v", err)
+		}
+	}()
+
+	// Wait for context cancellation to shutdown
+	<-ctx.Done()
+	log.Println("Shutting down health check server")
+	server.Shutdown(context.Background())
+}
+
 func main() {
 	// Create context that listens for the interrupt signal from the OS
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
 
 	// Load configuration
 	cfg, err := config.LoadConfig()
@@ -51,10 +91,12 @@ func main() {
 		monitoring.WithSuccessStatusCodes(cfg.SuccessStatusCodes),
 	)
 
+	go startHealthServer(ctx, &wg)
+
 	// Start the monitoring
 	monitor.Start(ctx)
 
 	// Wait for termination signal
-	<-ctx.Done()
-	log.Println("Shutting down gracefully...")
+	wg.Wait()
+	log.Println("Application shutdown complete")
 }
