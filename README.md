@@ -2,6 +2,8 @@
 
 A Kubernetes application that monitors HTTP endpoints and exports metrics to OpenTelemetry. The application automatically discovers endpoints to monitor based on Ingress resources in the Kubernetes cluster.
 
+The application exposes three key metrics to OpenTelemetry: `http_endpoint_up` (gauge indicating if an endpoint is up or down), `http_endpoint_check_count` (counter for the number of health checks performed), and `http_endpoint_response_time` (histogram of response times in milliseconds). These metrics include labels for the endpoint host, path, service name, and namespace, allowing for detailed monitoring and alerting on endpoint health and performance.
+
 ## Endpoint Discovery
 
 The application automatically discovers HTTP endpoints to monitor by scanning Ingress resources in the Kubernetes cluster. By default, it scans all namespaces, but this can be configured using the namespace filtering mode and list. For each Ingress rule, it extracts:
