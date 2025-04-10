@@ -1,0 +1,25 @@
+# K8s Endpoint Monitor Configuration
+
+# Monitoring settings
+monitoring:
+  # Interval between endpoint checks in seconds
+  interval: 30
+  # HTTP status codes to consider as successful (in addition to 2xx)
+  successStatusCodes: [401, 403]
+
+# Metrics settings
+metrics:
+  # Interval for reporting metrics in seconds
+  # This controls how often metrics are batched and sent to the OpenTelemetry collector,
+  # which is separate from when metrics are collected (which happens after each endpoint check)
+  interval: 10
+  # URL of the OpenTelemetry collector
+  otelCollectorURL: "signoz-otel-collector:4317"
+
+# Discovery settings
+discovery:
+  # Namespace filtering mode: "allow" or "deny"
+  namespaceMode: "allow"
+  # List of namespaces to allow or deny based on the mode
+  # Empty list with "allow" mode means all namespaces are allowed
+  namespaces: []
