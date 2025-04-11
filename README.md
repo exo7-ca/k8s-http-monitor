@@ -6,7 +6,7 @@ The application exposes three key metrics to OpenTelemetry: `http_endpoint_up` (
 
 ## Endpoint Discovery
 
-The application automatically discovers HTTP endpoints to monitor by scanning Ingress resources in the Kubernetes cluster. By default, it scans all namespaces, but this can be configured using the namespace filtering mode and list. For each Ingress rule, it extracts:
+The application uses the kubernetes API to automatically discovers HTTP endpoints to monitor by scanning Ingress resources in the Kubernetes cluster. By default, it scans all namespaces, but this can be configured using the namespace filtering mode and list. For each Ingress rule, it extracts:
 
 - The host and path
 - The protocol (http/https based on TLS configuration)
@@ -74,3 +74,15 @@ If no configuration is provided, the following default values are used:
 - Success status codes: 401, 403, 404 (in addition to 2xx status codes)
 - Namespace mode: "allow" (allow all namespaces)
 - Namespaces: [] (empty list, which means all namespaces when mode is "allow")
+
+## Deployment / Running
+
+The application can be deployed in several ways:
+
+### Kubernetes Deployment
+
+The application can be deployed directly to your Kubernetes cluster. It requires read access to the `services` and `ingresses` resources, so a properly scoped ServiceAccount should be used. Check the [k8s](k8s) folder for a complete example of a manifest file.
+
+### Local or External Deployment
+
+The application can also be run locally or in a Docker container deployed on a separate monitoring server (recommended). In these cases, it will use the `~/.kube/config` file to connect to the cluster.
